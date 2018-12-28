@@ -33,6 +33,8 @@ import com.github.gv2011.util.icol.Opt;
 
 abstract class AbstractSniforTest {
 
+  private static final String HOSTNAME_1 = "letero.com";
+
   private static final Logger LOG = getLogger(AbstractSniforTest.class);
 
   static final boolean EXPECT_CONN_ON_DEFAULT_PORT = true;
@@ -177,7 +179,7 @@ abstract class AbstractSniforTest {
           final int target2Port = defaultTarget.getLocalPort();
           LOG.info("Default target port: {}", target2Port);
           try(Snifor snifor = sniforSupplier.get()){
-            final Hostname targetHost = Hostname.create("d1.letero.com");
+            final Hostname targetHost = Hostname.create(HOSTNAME_1);
             LOG.info("Target host: {}", targetHost);
             snifor.configure(configuration(targetHost, targetPort, target2Port));
             final int sourcePort = snifor.ports().single().getSocketAdress().getPort();
