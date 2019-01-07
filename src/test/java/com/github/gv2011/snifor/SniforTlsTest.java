@@ -40,6 +40,7 @@ abstract class SniforTlsTest extends AbstractSniforTest{
   }
 
   private static final Pair<ServerSocketFactory,SocketFactory> socketFactories(){
+    LOG.info("Creating socket factories.");
     final X509Certificate cert;
     final SSLServerSocketFactory ssf;
     final SSLSocketFactory csf;
