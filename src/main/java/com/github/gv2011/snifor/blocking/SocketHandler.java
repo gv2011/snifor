@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -22,7 +23,6 @@ import com.github.gv2011.util.icol.Opt;
 
 class SocketHandler {
 
-  @SuppressWarnings("unused")
   private static final Logger LOG = getLogger(SocketHandler.class);
 
   private final Consumer<SocketHandler> finishedCallback;
@@ -37,13 +37,14 @@ class SocketHandler {
     final Socket sourceSocket,
     final SniAnalyser sniAnalyser,
     final ForwardAddressSelector forwardAddressSelector,
-    final Consumer<SocketHandler> finishedCallback
+    final Consumer<SocketHandler> finishedCallback,
+    final ThreadFactory threadFactory
   ) {
     this.sourceSocket = sourceSocket;
     this.sniAnalyser = sniAnalyser;
     this.forwardAddressSelector = forwardAddressSelector;
     this.finishedCallback = finishedCallback;
-    new Thread(this::run).start();
+    threadFactory.newThread(this::run).start();
   }
 
   private void run() {
@@ -62,6 +63,7 @@ class SocketHandler {
           count = call(()->in.read(b, v, b.length - v));
         }
         if(count==-1) {
+          LOG.debug("End of input - no analysis possible.");
           analysing = false;
         }
         else {
@@ -83,7 +85,7 @@ class SocketHandler {
       final SocketAddress targetAddress =
         hostname.map(forwardAddressSelector::getAddress).orElseGet(forwardAddressSelector::getDefaultAddress)
       ;
-      LOG.info("Analysis: {} {}", hostname, targetAddress);
+      LOG.info("Analysis: {} {} {}", result, hostname, targetAddress);
       final Socket target = new Socket();
       call(()->target.connect(targetAddress.toInetSocketAddress()));
       final Thread back = new Thread(()->copyBack(call(target::getInputStream), sourceSocket));

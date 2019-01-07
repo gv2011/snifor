@@ -12,9 +12,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.function.Supplier;
 
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
@@ -27,13 +25,12 @@ import com.github.gv2011.snifor.conf.Host.Type;
 import com.github.gv2011.snifor.conf.Hostname;
 import com.github.gv2011.snifor.conf.PortConfig;
 import com.github.gv2011.snifor.conf.SocketAddress;
+import com.github.gv2011.testutil.TestThreadFactory;
+import com.github.gv2011.util.BeanUtils;
 import com.github.gv2011.util.bytes.ByteUtils;
 import com.github.gv2011.util.bytes.Bytes;
-import com.github.gv2011.util.icol.Opt;
 
 abstract class AbstractSniforTest {
-
-  private static final String HOSTNAME_1 = "letero.com";
 
   private static final Logger LOG = getLogger(AbstractSniforTest.class);
 
@@ -46,83 +43,128 @@ abstract class AbstractSniforTest {
   final ServerSocketFactory serverSocketFactory;
   final SocketFactory socketFactory;
 
-  private final Supplier<Snifor> sniforSupplier;
+  private final TestThreadFactory threadFactory = new TestThreadFactory();
 
   AbstractSniforTest(
     final ServerSocketFactory serverSocketFactory,
-    final SocketFactory socketFactory,
-    final Supplier<Snifor> sniforSupplier
+    final SocketFactory socketFactory
   ) {
     this.serverSocketFactory = serverSocketFactory;
     this.socketFactory = socketFactory;
-    this.sniforSupplier = sniforSupplier;
   }
 
-  protected Thread handleTarget(final ServerSocket target) {
-    final int port = target.getLocalPort();
-    final Thread thread = new Thread(
-      ()->call(()->{
-        LOG.info("{} waiting.", port);
-        final Socket socket = target.accept();
-        LOG.info("{} accepted connection.", port);
-        final InputStream in = socket.getInputStream();
-        final Bytes bytes = ByteUtils.copyFromStream(in, DATA_FORWARD.size());
-        verifyEqual(bytes, DATA_FORWARD);
-        LOG.info("{} read expected input.", port);
-        final OutputStream out = socket.getOutputStream();
-        DATA_BACK.write(out);
-        out.flush();
-        LOG.info("{} sent output.", port);
-        verifyEqual(in.read(), -1);
-        LOG.info("{} detected end of input.", port);
-        socket.shutdownOutput();
-        LOG.info("{} closed output.", port);
-      }),
-      "target-"+port
-    );
-    thread.start();
-    return thread;
+  final TestThreadFactory threadFactory() {
+    return threadFactory ;
   }
 
-  protected Thread handleWrongTarget(final ServerSocket target) {
-    final int port = target.getLocalPort();
-    final Thread thread = new Thread(
-      ()->call(()->{
-        LOG.info("{} waiting.", port);
-        try {
-          target.accept();
-          LOG.error("{} request received.", port);
-        } catch (final IOException e) {
-          LOG.info("{} finished ({}).", port, e.toString());
+  abstract Snifor createSnifor();
+
+  final void doTestTest() throws IOException {
+    try(
+      final TargetPortHandler activeTargetPortHandler = ActiveTargetPortHandler.create(
+        serverSocketFactory, threadFactory
+      )
+    ){
+      final InetSocketAddress targetAddress = activeTargetPortHandler.getAddress();
+      try(final Socket client = socketFactory.createSocket(targetAddress.getAddress(), targetAddress.getPort())){
+        LOG.info("Client opened connection to {}.", targetAddress);
+        try(OutputStream out = client.getOutputStream()){
+          DATA_FORWARD.write(out);
+          out.flush();
+          LOG.info("Client sent output.");
+          //client.shutdownOutput();
+          try(InputStream in = client.getInputStream()){
+            final Bytes bytes = ByteUtils.copyFromStream(in, DATA_BACK.size());
+            verifyEqual(bytes.size(), DATA_BACK.size());
+            verifyEqual(bytes, DATA_BACK);
+            client.shutdownOutput();
+            LOG.info("Client received expected answer and closed output.");
+            verifyEqual(in.read(), -1);
+            LOG.info("Client received end of input.");
+          }
         }
-      }),
-      "target-"+port
-    );
-    thread.start();
-    return thread;
+      }
+    }
   }
 
-  protected Configuration configuration(final Hostname targetHost, final int targetPort, final int target2Port) {
-    final Host loopback = beanBuilder(Host.class).set(Host::type).to(Type.LOOPBACK).build();
+  void doTest(final boolean expectConnectionOnDefaultPort) throws IOException {
+    try(final TargetPortHandler activeTargetPortHandler = ActiveTargetPortHandler.create(
+      serverSocketFactory, threadFactory
+    )){
+      try(final TargetPortHandler unusedTargetPortHandler = UnusedTargetPortHandler.create(
+        serverSocketFactory, threadFactory
+      )){
+        try(Snifor snifor = createSnifor()){
+          final Hostname targetHost = Hostname.create(InetAddress.getLocalHost().getCanonicalHostName());
+          LOG.info("Target host: {}", targetHost);
+          final Configuration configuration = expectConnectionOnDefaultPort
+            ? configuration(
+              targetHost,
+              unusedTargetPortHandler.getAddress().getPort(),
+              activeTargetPortHandler.getAddress().getPort()
+            )
+            : configuration(
+              targetHost,
+              activeTargetPortHandler.getAddress().getPort(),
+              unusedTargetPortHandler.getAddress().getPort()
+            )
+          ;
+          LOG.info(
+            "Configuration: {}",
+            BeanUtils.typeRegistry().beanType(Configuration.class).toJson(configuration).serialize()
+          );
+          snifor.configure(configuration);
+          final InetSocketAddress sniforEntryPort = snifor.ports().single().getSocketAdress();
+          LOG.info("Snifor entry: {}", sniforEntryPort);
+          final InetAddress host = InetAddress.getByName(targetHost.toString());
+          final int port = sniforEntryPort.getPort();
+          LOG.info("Connecting to: {}:{}", host, port);
+          try(final Socket client = socketFactory.createSocket(host, port)){
+            final Thread commThread = threadFactory.newThread(()->communicate(client), client::close);
+            commThread.start();
+            call(()->commThread.join());
+          }
+        }
+      }
+    }
+  }
+
+
+
+  private void communicate(final Socket client){
+    call(()->{
+      try(OutputStream out = client.getOutputStream()){
+        DATA_FORWARD.write(out);
+        client.shutdownOutput();
+        try(InputStream in = client.getInputStream()){
+          final Bytes bytes = ByteUtils.fromStream(in);
+          verifyEqual(bytes, DATA_BACK);
+        }
+      }
+    });
+  }
+
+  protected Configuration configuration(final Hostname targetHost, final int targetPort, final int defaultPort) {
+    final Host wildcard = beanBuilder(Host.class).set(Host::type).to(Type.WILDCARD).build();
     return beanBuilder(Configuration.class)
       .set(Configuration::ports).to(setOf(
         beanBuilder(PortConfig.class)
         .set(PortConfig::serverSocket).to(
           beanBuilder(SocketAddress.class)
-          .set(SocketAddress::host).to(loopback)
+          .set(SocketAddress::host).to(wildcard)
           .set(SocketAddress::port).to(0)
           .build()
         )
         .set(PortConfig::defaultAddress).to(
           beanBuilder(SocketAddress.class)
-          .set(SocketAddress::host).to(loopback)
-          .set(SocketAddress::port).to(target2Port)
+          .set(SocketAddress::host).to(host(targetHost))
+          .set(SocketAddress::port).to(defaultPort)
           .build()
         )
         .set(PortConfig::forwards).to(sortedMapOf(
           targetHost,
           beanBuilder(SocketAddress.class)
-          .set(SocketAddress::host).to(loopback)
+          .set(SocketAddress::host).to(host(targetHost))
           .set(SocketAddress::port).to(targetPort)
           .build()
         ))
@@ -132,78 +174,14 @@ abstract class AbstractSniforTest {
     ;
   }
 
-  void doTestTest() throws IOException {
-    Opt<Thread> targetThread = Opt.empty();
-    try {
-      try(ServerSocket target = serverSocketFactory.createServerSocket()){
-        target.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-        targetThread = Opt.of(handleTarget(target));
-        final int targetPort = target.getLocalPort();
-        try(final Socket client = socketFactory.createSocket(InetAddress.getLoopbackAddress(), targetPort)){
-          try(OutputStream out = client.getOutputStream()){
-            DATA_FORWARD.write(out);
-            out.flush();
-            LOG.info("Client sent output.");
-            //client.shutdownOutput();
-            try(InputStream in = client.getInputStream()){
-              final Bytes bytes = ByteUtils.copyFromStream(in, DATA_BACK.size());
-              verifyEqual(bytes.size(), DATA_BACK.size());
-              verifyEqual(bytes, DATA_BACK);
-              client.shutdownOutput();
-              LOG.info("Client received expected answer and closed output.");
-              verifyEqual(in.read(), -1);
-              LOG.info("Client received end of input.");
-            }
-          }
-        }
-      }
-    }finally {
-      targetThread.ifPresent(t->call(()->t.join()));
-    }
-  }
 
-  void doTest(final boolean expectConnectionOnDefaultPort) throws IOException {
-    Opt<Thread> targetThread = Opt.empty();
-    Opt<Thread> defaultTargetThread = Opt.empty();
-    try {
-      try(ServerSocket target = serverSocketFactory.createServerSocket(0)){
-        targetThread = Opt.of(expectConnectionOnDefaultPort ? handleWrongTarget(target): handleTarget(target));
-        final int targetPort = target.getLocalPort();
-        LOG.info("Target port: {}", targetPort);
-        try(ServerSocket defaultTarget = serverSocketFactory.createServerSocket()){
-          defaultTarget.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-          defaultTargetThread = Opt.of(expectConnectionOnDefaultPort
-            ? handleTarget(defaultTarget)
-            : handleWrongTarget(defaultTarget)
-          );
-          final int target2Port = defaultTarget.getLocalPort();
-          LOG.info("Default target port: {}", target2Port);
-          try(Snifor snifor = sniforSupplier.get()){
-            final Hostname targetHost = Hostname.create(HOSTNAME_1);
-            LOG.info("Target host: {}", targetHost);
-            snifor.configure(configuration(targetHost, targetPort, target2Port));
-            final int sourcePort = snifor.ports().single().getSocketAdress().getPort();
-            LOG.info("Source port: {}", sourcePort);
-            try(final Socket client = socketFactory.createSocket(
-              InetAddress.getByName(targetHost.toString()),
-              sourcePort
-            )){
-              try(OutputStream out = client.getOutputStream()){
-                DATA_FORWARD.write(out);
-                client.shutdownOutput();
-                try(InputStream in = client.getInputStream()){
-                  final Bytes bytes = ByteUtils.fromStream(in);
-                  verifyEqual(bytes, DATA_BACK);
-                }
-              }
-            }
-          }
-        }
-      }
-    }finally {
-      targetThread.ifPresent(t->call(()->t.join()));
-      defaultTargetThread.ifPresent(t->call(()->t.join()));
-    }
+
+  private Host host(final Hostname targetHost) {
+    return beanBuilder(Host.class)
+      .set(Host::type).to(Type.EXPLICIT)
+      .setOpt(Host::name).to(targetHost)
+      .build()
+    ;
   }
 
 }

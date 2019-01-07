@@ -10,6 +10,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ThreadFactory;
 
 import org.slf4j.Logger;
 
@@ -39,14 +40,19 @@ public final class PortHandler implements AutoCloseableNt, com.github.gv2011.sni
 
   private final SocketAddress serverSocketAddress;
 
-  PortHandler(final PortConfig portConfig) {
+  private final ThreadFactory threadFactory;
+
+  PortHandler(final PortConfig portConfig, final ThreadFactory threadFactory) {
     forwardAddressSelector = new ForwardAddressSelectorImp(portConfig.forwards(), portConfig.defaultAddress());
     sniAnalyser = new TlsExplorer();
     serverSocket = call(()->new ServerSocket());
     serverSocketAddress = portConfig.serverSocket();
     final InetSocketAddress address = serverSocketAddress.toInetSocketAddress();
     call(()->serverSocket.bind(address));
-    thread = new Thread(this::run, address.toString());
+    LOG.info("Snifor entry socket bound to {}.", serverSocket.getLocalSocketAddress());
+    this.threadFactory = threadFactory;
+    thread = threadFactory.newThread(this::run);
+    thread.setName(address.toString());
     thread.start();
   }
 
@@ -72,7 +78,8 @@ public final class PortHandler implements AutoCloseableNt, com.github.gv2011.sni
                   socketHandlers.remove(h);
                   lock.notifyAll();
                 }
-              }
+              },
+              threadFactory
             )
           );
           if(closing) shouldRun = false;
@@ -90,6 +97,7 @@ public final class PortHandler implements AutoCloseableNt, com.github.gv2011.sni
   }
 
 
+  @Override
   public InetSocketAddress getSocketAdress() {
     return (InetSocketAddress) call(serverSocket::getLocalSocketAddress);
   }

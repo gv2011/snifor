@@ -7,6 +7,7 @@ import static com.github.gv2011.util.icol.ICollections.toIMap;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Map.Entry;
+import java.util.concurrent.ThreadFactory;
 
 import org.slf4j.Logger;
 
@@ -29,6 +30,12 @@ public final class SniforBlocking implements Snifor{
   private IMap<SocketAddress, PortHandler> ports = ICollections.emptyMap();
 
   private boolean closed;
+
+  private final ThreadFactory threadFactory;
+
+  public SniforBlocking(final ThreadFactory threadFactory) {
+    this.threadFactory = threadFactory;
+  }
 
   @Override
   public void configure(final Configuration configuration) {
@@ -53,7 +60,7 @@ public final class SniforBlocking implements Snifor{
       bySocket.entrySet().parallelStream()
         .filter(e->!ports.containsKey(e.getKey()))
         .forEach(e->{
-          modPorts.put(e.getKey(), new PortHandler(e.getValue()));
+          modPorts.put(e.getKey(), new PortHandler(e.getValue(), threadFactory));
         });
       ;
       ports = modPorts.build();

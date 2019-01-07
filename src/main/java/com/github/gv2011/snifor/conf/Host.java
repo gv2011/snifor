@@ -6,14 +6,15 @@ import static com.github.gv2011.util.ex.Exceptions.call;
 import java.net.InetAddress;
 
 import com.github.gv2011.util.beans.Computed;
+import com.github.gv2011.util.icol.Opt;
 
 public interface Host {
 
-  public static enum Type{LOCALHOST, LOOPBACK, EXPLICIT}
+  public static enum Type{LOCALHOST, LOOPBACK, EXPLICIT, WILDCARD}
 
   Type type();
 
-  String name();
+  Opt<Hostname> name();
 
   @Computed
   InetAddress toInetAddress();
@@ -22,9 +23,10 @@ public interface Host {
     final Type type = host.type();
     if(type.equals(Type.LOCALHOST)) return call(InetAddress::getLocalHost);
     else if(type.equals(Type.LOOPBACK)) return call(InetAddress::getLoopbackAddress);
+    else if(type.equals(Type.WILDCARD)) return call(()->InetAddress.getByAddress(new byte[] {0,0,0,0}));
     else {
       verifyEqual(type, Type.EXPLICIT);
-      return call(()->InetAddress.getByName(host.name()));
+      return call(()->InetAddress.getByName(host.name().toString()));
     }
   }
 

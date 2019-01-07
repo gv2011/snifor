@@ -5,7 +5,6 @@ import static com.github.gv2011.util.icol.ICollections.listOf;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.security.cert.X509Certificate;
-import java.util.function.Supplier;
 
 import javax.naming.ldap.LdapName;
 import javax.net.ssl.KeyManagerFactory;
@@ -14,6 +13,7 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
+import org.junit.After;
 import org.slf4j.Logger;
 
 import com.github.gv2011.util.ResourceUtils;
@@ -54,8 +54,14 @@ abstract class SniforTlsTest extends AbstractSniforTest{
       csf = ctx.getSocketFactory();
   }
 
-  SniforTlsTest(final Supplier<Snifor> sniforSupplier) {
-    super(ssf, csf, sniforSupplier);
+  SniforTlsTest() {
+    super(ssf, csf);
   }
+
+  @After
+  public void close() {
+    threadFactory().close();
+  }
+
 
 }
