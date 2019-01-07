@@ -5,7 +5,6 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.IOException;
 
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -30,6 +29,11 @@ public class SniforBlockingTlsTest extends SniforTlsTest{
   }
 
   @Test
+  public void testHostName() throws IOException {
+    doTestHostName();
+  }
+
+  @Test(timeout=10000)
   public void testTest() throws IOException {
     doTestTest();
   }

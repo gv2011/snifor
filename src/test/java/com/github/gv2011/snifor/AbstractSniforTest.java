@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.Locale;
 
 import javax.net.ServerSocketFactory;
@@ -96,6 +97,19 @@ abstract class AbstractSniforTest {
     }
   }
 
+  void doTestHostName() throws UnknownHostException {
+    final Hostname hostName = getHostName();
+    LOG.info("Hostname is {}.", hostName);
+    LOG.info(
+      "IP is {}.",
+      InetAddress.getByName(hostName.toString()).getHostAddress()
+    );
+  }
+
+  private Hostname getHostName() throws UnknownHostException {
+    return Hostname.create(InetAddress.getLocalHost().getCanonicalHostName().toLowerCase(Locale.ENGLISH));
+  }
+
   void doTest(final boolean expectConnectionOnDefaultPort) throws IOException {
     try(final TargetPortHandler activeTargetPortHandler = ActiveTargetPortHandler.create(
       serverSocketFactory, threadFactory
@@ -104,10 +118,7 @@ abstract class AbstractSniforTest {
         serverSocketFactory, threadFactory
       )){
         try(Snifor snifor = createSnifor()){
-          final Hostname targetHost = Hostname.create(
-//              "letero.com"
-            InetAddress.getLocalHost().getCanonicalHostName().toLowerCase(Locale.ENGLISH)
-          );
+          final Hostname targetHost = getHostName();
           LOG.info("Target host: {}", targetHost);
           final Configuration configuration = expectConnectionOnDefaultPort
             ? configuration(
