@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.gv2011.snifor.conf.Hostname;
 import com.github.gv2011.util.BeanUtils;
+import com.github.gv2011.util.ann.Nullable;
 import com.github.gv2011.util.beans.BeanBuilder;
 import com.github.gv2011.util.icol.Opt;
 import com.github.gv2011.util.tstr.TypedString;
@@ -126,7 +127,8 @@ public final class TlsExplorer implements SniAnalyser{
 			final byte thirdByte = source.get();
 			if ((firstByte & 0x80) != 0 && thirdByte == 0x01) {
 				// looks like a V2ClientHello
-				return new HashMap<>();
+				//return new HashMap<>();
+			  throw new SSLProtocolException("V2ClientHello?");
 			} else if (firstByte == 22) {
 				// 22: handshake record
 				return exploreTLSRecord(source, firstByte);
@@ -212,7 +214,8 @@ public final class TlsExplorer implements SniAnalyser{
 		if (input.remaining() > 0)
 			return exploreExtensions(input);
 		else
-			return new HashMap<>();
+		  throw new SSLProtocolException("No extensions.");
+			//return new HashMap<>();
 	}
 
 	/*
@@ -225,17 +228,19 @@ public final class TlsExplorer implements SniAnalyser{
 	 */
 	private static Map<Integer, SNIServerName> exploreExtensions(final ByteBuffer input) throws SSLProtocolException {
 		int length = getInt16(input); // length of extensions
-		while (length > 0) {
+		@Nullable Map<Integer, SNIServerName> result = null;
+		while (length > 0 && result==null) {
 			final int extType = getInt16(input); // extension type
 			final int extLen = getInt16(input); // length of extension data
 			if (extType == 0x00) { // 0x00: type of server name indication
-				return exploreSNIExt(input, extLen);
+				result = exploreSNIExt(input, extLen);
 			} else { // ignore other extensions
 				ignore(input, extLen);
 			}
 			length -= extLen + 4;
 		}
-		return new HashMap<>();
+		if(result==null) throw new SSLProtocolException("No SNI extension.");
+		return result;
 	}
 
 	/*
@@ -264,13 +269,12 @@ public final class TlsExplorer implements SniAnalyser{
 				final byte[] encoded = new byte[snLen];
 				input.get(encoded);
 				SNIServerName serverName;
-				switch (code) {
-				case StandardConstants.SNI_HOST_NAME:
+				if(code==StandardConstants.SNI_HOST_NAME) {
 					if (encoded.length == 0)
 						throw new SSLProtocolException("Empty HostName in server name indication");
 					serverName = new SNIHostName(encoded);
-					break;
-				default:
+				}
+				else{
 					serverName = new UnknownServerName(code, encoded);
 				}
 				// check for duplicated server name type
