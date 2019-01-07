@@ -14,10 +14,11 @@ import com.github.gv2011.snifor.blocking.SniforBlocking;
 @Ignore
 public class SniforBlockingTlsTest extends SniforTlsTest{
 
-  @SuppressWarnings("unused")
   private static final Logger LOG = getLogger(SniforBlockingTlsTest.class);
 
-  public SniforBlockingTlsTest() {}
+  public SniforBlockingTlsTest() {
+    LOG.info("Created.");
+  }
 
   @Override
   @After
@@ -34,7 +35,7 @@ public class SniforBlockingTlsTest extends SniforTlsTest{
     doTestTest();
   }
 
-  @Test
+  //@Test
   public void test() throws IOException {
     doTest(EXPECT_CONN_ON_SNI_PORT);
   }
