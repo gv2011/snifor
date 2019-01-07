@@ -7,6 +7,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.security.cert.X509Certificate;
 
 import javax.naming.ldap.LdapName;
+import javax.net.ServerSocketFactory;
+import javax.net.SocketFactory;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
@@ -16,6 +18,8 @@ import javax.net.ssl.TrustManagerFactory;
 import org.junit.After;
 import org.slf4j.Logger;
 
+import com.github.gv2011.util.CollectionUtils;
+import com.github.gv2011.util.Pair;
 import com.github.gv2011.util.ResourceUtils;
 import com.github.gv2011.util.bytes.Bytes;
 import com.github.gv2011.util.sec.CertificateBuilder;
@@ -26,12 +30,19 @@ abstract class SniforTlsTest extends AbstractSniforTest{
 
   private static final Logger LOG = getLogger(SniforTlsTest.class);
 
-  private static SSLServerSocketFactory ssf;
-  private static SSLSocketFactory csf;
+  SniforTlsTest() {
+    super(socketFactories());
+  }
 
-  static {
-    LOG.info("Started static initialization.");
+  @After
+  public void close() {
+    threadFactory().close();
+  }
+
+  private static final Pair<ServerSocketFactory,SocketFactory> socketFactories(){
     final X509Certificate cert;
+    final SSLServerSocketFactory ssf;
+    final SSLSocketFactory csf;
     {
       final RsaKeyPair rsaKeyPair = RsaKeyPair.parse(ResourceUtils.getBinaryResource(SniforTlsTest.class, "key.rsa"));
       final LdapName subject = call(()->new LdapName("CN=test"));
@@ -47,6 +58,7 @@ abstract class SniforTlsTest extends AbstractSniforTest{
       ssf = ctx.getServerSocketFactory();
       LOG.info("Created SSLServerSocketFactory.");
     }
+    {
       final Bytes ks = SecUtils.createJKSKeyStore(cert);
       final TrustManagerFactory tmf = call(()->TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()));
       call(()->tmf.init(SecUtils.readKeyStore(ks::openStream)));
@@ -54,16 +66,7 @@ abstract class SniforTlsTest extends AbstractSniforTest{
       call(()->ctx.init(null, tmf.getTrustManagers(), null));
       csf = ctx.getSocketFactory();
       LOG.info("Created SSLSocketFactory.");
+    }
+    return CollectionUtils.pair(ssf, csf);
   }
-
-  SniforTlsTest() {
-    super(ssf, csf);
-  }
-
-  @After
-  public void close() {
-    threadFactory().close();
-  }
-
-
 }

@@ -27,6 +27,7 @@ import com.github.gv2011.snifor.conf.PortConfig;
 import com.github.gv2011.snifor.conf.SocketAddress;
 import com.github.gv2011.testutil.TestThreadFactory;
 import com.github.gv2011.util.BeanUtils;
+import com.github.gv2011.util.Pair;
 import com.github.gv2011.util.bytes.ByteUtils;
 import com.github.gv2011.util.bytes.Bytes;
 
@@ -52,6 +53,13 @@ abstract class AbstractSniforTest {
     this.serverSocketFactory = serverSocketFactory;
     this.socketFactory = socketFactory;
   }
+
+  AbstractSniforTest(
+      final Pair<ServerSocketFactory,SocketFactory> socketFactories
+    ) {
+      serverSocketFactory = socketFactories.getKey();
+      socketFactory = socketFactories.getValue();
+    }
 
   final TestThreadFactory threadFactory() {
     return threadFactory ;
