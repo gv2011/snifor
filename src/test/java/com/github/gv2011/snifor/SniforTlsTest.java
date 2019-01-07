@@ -45,6 +45,7 @@ abstract class SniforTlsTest extends AbstractSniforTest{
       final SSLContext ctx = call(()->SSLContext.getInstance(SecUtils.TLSV12));
       call(()->ctx.init(kmf.getKeyManagers() , null, null));
       ssf = ctx.getServerSocketFactory();
+      LOG.info("Created SSLServerSocketFactory.");
     }
       final Bytes ks = SecUtils.createJKSKeyStore(cert);
       final TrustManagerFactory tmf = call(()->TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()));
@@ -52,6 +53,7 @@ abstract class SniforTlsTest extends AbstractSniforTest{
       final SSLContext ctx = call(()->SSLContext.getInstance(SecUtils.TLSV12));
       call(()->ctx.init(null, tmf.getTrustManagers(), null));
       csf = ctx.getSocketFactory();
+      LOG.info("Created SSLSocketFactory.");
   }
 
   SniforTlsTest() {
