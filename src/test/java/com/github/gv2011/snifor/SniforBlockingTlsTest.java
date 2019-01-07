@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 
 import com.github.gv2011.snifor.blocking.SniforBlocking;
 
-@Ignore
 public class SniforBlockingTlsTest extends SniforTlsTest{
 
   private static final Logger LOG = getLogger(SniforBlockingTlsTest.class);
