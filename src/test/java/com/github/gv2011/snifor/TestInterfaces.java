@@ -32,10 +32,11 @@ public class TestInterfaces {
       }
     }
     final InetAddress localHost = InetAddress.getLocalHost();
-    System.out.println("Local Host: "+localHost.getHostAddress()+" ("+localHost.getCanonicalHostName()+")");
+    final String hostName = localHost.getCanonicalHostName();
+    System.out.println("Local Host: "+localHost.getHostAddress()+" ("+hostName+")");
     System.out.println(
       "IP addresses: "+
-      Arrays.stream(InetAddress.getAllByName("d1.letero.com")).map(InetAddress::getHostAddress).collect(joining(", "))
+      Arrays.stream(InetAddress.getAllByName(hostName)).map(InetAddress::getHostAddress).collect(joining(", "))
     );
   }
 
