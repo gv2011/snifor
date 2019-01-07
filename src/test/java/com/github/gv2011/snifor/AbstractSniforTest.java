@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.Locale;
 
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
@@ -104,8 +105,8 @@ abstract class AbstractSniforTest {
       )){
         try(Snifor snifor = createSnifor()){
           final Hostname targetHost = Hostname.create(
-              "letero.com"
-//            InetAddress.getLocalHost().getCanonicalHostName()
+//              "letero.com"
+            InetAddress.getLocalHost().getCanonicalHostName().toLowerCase(Locale.ENGLISH)
           );
           LOG.info("Target host: {}", targetHost);
           final Configuration configuration = expectConnectionOnDefaultPort
