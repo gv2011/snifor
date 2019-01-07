@@ -40,6 +40,9 @@ import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.StandardConstants;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.gv2011.snifor.conf.Hostname;
 import com.github.gv2011.util.BeanUtils;
 import com.github.gv2011.util.beans.BeanBuilder;
@@ -47,6 +50,9 @@ import com.github.gv2011.util.icol.Opt;
 import com.github.gv2011.util.tstr.TypedString;
 
 public final class TlsExplorer implements SniAnalyser{
+
+
+  private static final Logger LOG = LoggerFactory.getLogger(TlsExplorer.class);
 
   @Override
   public Result analyse(final ByteBuffer buffer) {
@@ -68,9 +74,11 @@ public final class TlsExplorer implements SniAnalyser{
             result.set(Result::name).to(TypedString.create(Hostname.class, hostName.get().getAsciiName()));
           }
           else {
+            LOG.debug("Not analysable (No hostname present - {}).", names);
             result.set(Result::type).to(ResultType.NOT_ANALYSABLE);
           }
         } catch (final SSLProtocolException e) {
+          LOG.debug("Not analysable (SSLProtocolException).", e);
           result.set(Result::type).to(ResultType.NOT_ANALYSABLE);
         }
       }
