@@ -5,13 +5,11 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.IOException;
 
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 
 import com.github.gv2011.snifor.nonblocking.SniforNonblocking;
 
-@Ignore
 public class SniforNonblockingTlsTest extends SniforTlsTest{
 
   @SuppressWarnings("unused")
@@ -29,12 +27,12 @@ public class SniforNonblockingTlsTest extends SniforTlsTest{
   public void testSetup() throws IOException {
   }
 
-  @Test
+  @Test(timeout=10000)
   public void testTest() throws IOException {
     doTestTest();
   }
 
-  @Test
+  @Test(timeout=10000)
   public void test() throws IOException {
     doTest(EXPECT_CONN_ON_SNI_PORT);
   }

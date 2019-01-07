@@ -26,7 +26,7 @@ public class SniforBlockingTest extends AbstractSniforTest{
     return new SniforBlocking(threadFactory());
   }
 
-  @Test
+  @Test(timeout=10000)
   public void testTest() throws IOException {
     doTestTest();
   }
