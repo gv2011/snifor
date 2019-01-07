@@ -103,7 +103,10 @@ abstract class AbstractSniforTest {
         serverSocketFactory, threadFactory
       )){
         try(Snifor snifor = createSnifor()){
-          final Hostname targetHost = Hostname.create(InetAddress.getLocalHost().getCanonicalHostName());
+          final Hostname targetHost = Hostname.create(
+              "letero.com"
+//            InetAddress.getLocalHost().getCanonicalHostName()
+          );
           LOG.info("Target host: {}", targetHost);
           final Configuration configuration = expectConnectionOnDefaultPort
             ? configuration(
