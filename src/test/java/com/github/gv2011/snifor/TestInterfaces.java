@@ -14,6 +14,22 @@ import org.junit.Test;
 public class TestInterfaces {
 
   @Test
+  public void test1() throws UnknownHostException{
+    InetAddress.getByName("letero.com");
+  }
+
+  @Test
+  public void test2() throws UnknownHostException{
+    InetAddress.getByName("serverbase.eu");
+  }
+
+  @Test
+  public void test3() throws UnknownHostException{
+    InetAddress.getByName("genf.serverbase.eu");
+  }
+
+
+  @Test
   public void test() throws SocketException, UnknownHostException {
     final Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
     while(interfaces.hasMoreElements()) {
