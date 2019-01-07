@@ -24,13 +24,13 @@ import com.github.gv2011.util.sec.SecUtils;
 
 abstract class SniforTlsTest extends AbstractSniforTest{
 
-  @SuppressWarnings("unused")
   private static final Logger LOG = getLogger(SniforTlsTest.class);
 
   private static SSLServerSocketFactory ssf;
   private static SSLSocketFactory csf;
 
   static {
+    LOG.info("Started static initialization.");
     final X509Certificate cert;
     {
       final RsaKeyPair rsaKeyPair = RsaKeyPair.parse(ResourceUtils.getBinaryResource(SniforTlsTest.class, "key.rsa"));
