@@ -26,7 +26,7 @@ public interface Host {
     else if(type.equals(Type.WILDCARD)) return call(()->InetAddress.getByAddress(new byte[] {0,0,0,0}));
     else {
       verifyEqual(type, Type.EXPLICIT);
-      return call(()->InetAddress.getByName(host.name().toString()));
+      return call(()->InetAddress.getByName(host.name().get().toString()));
     }
   }
 
