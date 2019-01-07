@@ -5,11 +5,13 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.IOException;
 
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 
 import com.github.gv2011.snifor.blocking.SniforBlocking;
 
+@Ignore
 public class SniforBlockingTlsTest extends SniforTlsTest{
 
   @SuppressWarnings("unused")
@@ -17,6 +19,7 @@ public class SniforBlockingTlsTest extends SniforTlsTest{
 
   public SniforBlockingTlsTest() {}
 
+  @Override
   @After
   public void close() {
     threadFactory().close();
