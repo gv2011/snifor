@@ -6,10 +6,12 @@ import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.github.gv2011.snifor.nonblocking.SniforNonblocking;
 
+@Ignore
 public class SniforNonblockingTest extends AbstractSniforTest{
 
   public SniforNonblockingTest() {
