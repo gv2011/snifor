@@ -34,7 +34,7 @@ public class SniforBlockingTlsTest extends SniforTlsTest{
     doTestTest();
   }
 
-  //@Test
+  @Test(timeout=10000)
   public void test() throws IOException {
     doTest(EXPECT_CONN_ON_SNI_PORT);
   }
