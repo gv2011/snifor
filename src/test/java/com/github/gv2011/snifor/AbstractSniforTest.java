@@ -32,10 +32,13 @@ import com.github.gv2011.util.BeanUtils;
 import com.github.gv2011.util.Pair;
 import com.github.gv2011.util.bytes.ByteUtils;
 import com.github.gv2011.util.bytes.Bytes;
+import com.github.gv2011.util.icol.Opt;
 
 abstract class AbstractSniforTest {
 
   private static final Logger LOG = getLogger(AbstractSniforTest.class);
+
+  private static final String HOSTNAME_PROP = Snifor.class.getPackageName()+".test.hostname";
 
   static final boolean EXPECT_CONN_ON_DEFAULT_PORT = true;
   static final boolean EXPECT_CONN_ON_SNI_PORT = !EXPECT_CONN_ON_DEFAULT_PORT;
@@ -107,7 +110,10 @@ abstract class AbstractSniforTest {
   }
 
   private Hostname getHostName() throws UnknownHostException {
-    return Hostname.create(InetAddress.getLocalHost().getCanonicalHostName().toLowerCase(Locale.ENGLISH));
+    return Hostname.create(
+      Opt.ofNullable(System.getProperty(HOSTNAME_PROP))
+      .orElseGet(()->call(InetAddress::getLocalHost).getCanonicalHostName().toLowerCase(Locale.ENGLISH))
+    );
   }
 
   void doTest(final boolean expectConnectionOnDefaultPort) throws IOException {
