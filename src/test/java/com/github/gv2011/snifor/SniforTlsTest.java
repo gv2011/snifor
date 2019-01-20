@@ -51,7 +51,7 @@ abstract class SniforTlsTest extends AbstractSniforTest{
         .setSubject(subject )
         .build(rsaKeyPair)
       ;
-      final Bytes ks = SecUtils.createJKSKeyStore(rsaKeyPair, listOf(cert));
+      final Bytes ks = SecUtils.createJKSKeyStoreBytes(rsaKeyPair, listOf(cert));
       final KeyManagerFactory kmf = call(()->KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm()));
       call(()->kmf.init(SecUtils.readKeyStore(ks::openStream), SecUtils.JKS_DEFAULT_PASSWORD.toCharArray()));
       final SSLContext ctx = call(()->SSLContext.getInstance(SecUtils.TLSV12));
