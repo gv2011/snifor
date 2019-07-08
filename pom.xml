@@ -7,7 +7,7 @@
   <parent>
     <artifactId>parent-gv</artifactId>
     <groupId>com.github.gv2011</groupId>
-    <version>0.4.0-SNAPSHOT</version>
+    <version>0.4.1-SNAPSHOT</version>
   </parent>
   <artifactId>snifor</artifactId>
   <version>0.0.1-SNAPSHOT</version>
@@ -20,7 +20,7 @@
   </scm>
 
   <properties>
-    <util.version>0.4.0-SNAPSHOT</util.version>
+    <util.version>0.4.1-SNAPSHOT</util.version>
   </properties>
 
   <dependencies>
@@ -49,7 +49,7 @@
     </dependency>
     <dependency>
       <groupId>com.github.gv2011</groupId>
-      <artifactId>util-test</artifactId>
+      <artifactId>testutil</artifactId>
       <version>${util.version}</version>
     </dependency>
     <dependency>
